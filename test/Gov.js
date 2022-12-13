@@ -24,14 +24,60 @@ describe('Gov', function () {
     await token.deployed();
     await gov.deployed();
 
-    return { token, gov, owner };
+    return { token, gov, owner, otherAccount };
+  }
+  async function propose(token, toAddress, gov) {
+    const grantAmount = 100000000;
+    const transferCalldata = token.interface.encodeFunctionData('transfer', [
+      toAddress,
+      grantAmount,
+    ]);
+    console.log('----------transferCalldata-------');
+    console.log(transferCalldata);
+    const description = 'Proposal #1: Give grant to team';
+    // await governor.propose(
+    //   [tokenAddress],
+    //   [0],
+    //   [transferCalldata],
+    //   “Proposal #1: Give grant to team”,
+    // );
+    console.log('token.address----');
+    console.log(token.address);
+    const targets = [token.address];
+    const values = [0];
+    try {
+      const ret = await gov.propose(
+        targets,
+        values,
+        [transferCalldata],
+        description
+      );
+      console.log('ret------------');
+      console.log(ret);
+    } catch (e) {
+      console.log('error------------');
+      console.log(e);
+    }
   }
 
   describe('Gov', function () {
     it('deploy', async function () {
       console.log('------------1');
-      const { token, gov, owner } = await loadFixture(deployGovFixture);
+      const { token, gov, owner, otherAccount } = await loadFixture(
+        deployGovFixture
+      );
       console.log('------------2');
+      console.log('----otherAccount.address');
+      console.log(otherAccount.address);
+      propose(token, owner.address, gov);
+
+      let a = await gov.hasVoted(0, owner.address);
+      console.log('a-----------');
+      console.log(a);
+      a = await gov.hasVoted(1, owner.address);
+      console.log('a-----------');
+      console.log(a);
+      console.log('------------3');
     });
   });
 });
