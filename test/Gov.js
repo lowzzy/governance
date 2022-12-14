@@ -27,17 +27,73 @@ describe('Gov', function () {
 
     const Gov = await ethers.getContractFactory('Gov');
     const Token = await ethers.getContractFactory('Token');
-    const token = await Token.deploy('wrapped eth', 'weth', 100000000000000);
+    const token = await Token.deploy(
+      'wrapped eth',
+      'weth',
+      '10000000000000000000000'
+    );
     const TokenAddress = token.address;
     const gov = await Gov.deploy(TokenAddress);
 
     await token.deployed();
     await gov.deployed();
 
+    await token.transfer(gov.address, '5000000000000000000000');
+    // let bl = await token.balanceOf(gov.address);
+    // console.log('blance-------');
+    // console.log(bl);
+
     return { token, gov, owner, otherAccount };
   }
-  async function propose(token, toAddress, gov) {
+  async function DoExecute(token, toAddress, gov) {
     const grantAmount = 10;
+    const transferCalldata = token.interface.encodeFunctionData('transfer', [
+      toAddress,
+      grantAmount,
+    ]);
+
+    const descriptionHash = ethers.utils.id('Proposal #1: Give grant to team');
+    const targets = [token.address];
+    const values = [0];
+    try {
+      const ret = await gov.execute(
+        targets,
+        values,
+        [transferCalldata],
+        descriptionHash
+      );
+      return ret;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  // async function DoQueue(token, toAddress, gov) {
+  //   const grantAmount = 10;
+  //   const transferCalldata = token.interface.encodeFunctionData('transfer', [
+  //     toAddress,
+  //     grantAmount,
+  //   ]);
+
+  //   const descriptionHash = ethers.utils.id('Proposal #1: Give grant to team');
+  //   const targets = [token.address];
+  //   const values = [0];
+  //   try {
+  //     const ret = await gov.queue(
+  //       targets,
+  //       values,
+  //       [transferCalldata],
+  //       descriptionHash
+  //     );
+  //     return ret;
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  // }
+
+  async function propose(token, toAddress, gov) {
+    // const grantAmount = '100';
+    const grantAmount = 10; // ここを変えるとend,startの時刻が格納できたりできなくなったりする
     const transferCalldata = token.interface.encodeFunctionData('transfer', [
       toAddress,
       grantAmount,
@@ -211,6 +267,21 @@ describe('Gov', function () {
       ret = await castVote(id_, support, gov);
       console.log('castVote ret---------------');
       console.log(ret);
+
+      // ret = await DoQueue(token, owner.address, gov);
+      // console.log('do queue ret---------------');
+      // console.log(ret);
+      let bl = await token.balanceOf(gov.address);
+      console.log('blance before-------');
+      console.log(bl);
+
+      ret = await DoExecute(token, owner.address, gov);
+      console.log('do execute ret---------------');
+      console.log(ret);
+
+      bl = await token.balanceOf(gov.address);
+      console.log('blance after-------');
+      console.log(bl);
     });
   });
 });

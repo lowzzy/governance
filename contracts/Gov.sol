@@ -122,30 +122,7 @@ function propose(
         return _proposals[proposalId].voteStart.getDeadline();
     }
 
-    function _castVote(
-        uint256 proposalId,
-        address account,
-        uint8 support,
-        string memory reason,
-        bytes memory params
-    ) internal virtual override returns (uint256) {
-        ProposalCore storage proposal = _proposals[proposalId];
-        require(state(proposalId) == ProposalState.Active, "Governor: vote not currently active");
-
-        uint256 weight = _getVotes(account, proposal.voteStart.getDeadline(), params);
-        // require(false," *** unyaaaaaaa AAA*******************");
-        // uint256 weight = 10;
-        _countVote(proposalId, account, support, weight, params);
-
-        if (params.length == 0) {
-            emit VoteCast(account, proposalId, support, weight, reason);
-        } else {
-            emit VoteCastWithParams(account, proposalId, support, weight, reason, params);
-        }
-
-        return weight;
-    }
-
+    // 投票期間endがうまく定義できず、そこだけ変えている。
     function state(uint256 proposalId) public view virtual override returns (ProposalState) {
         ProposalCore storage proposal = _proposals[proposalId];
 
@@ -173,7 +150,7 @@ function propose(
         // if (deadline >= block.number) {
             return ProposalState.Active;
         // }
-        require(false, "DDDDDDDDDDDDD");
+        // require(false, "DDDDDDDDDDDDD");
 
         // 充分票を得られた or voteが終わった？
         if (_quorumReached(proposalId) && _voteSucceeded(proposalId)) {
@@ -181,6 +158,30 @@ function propose(
         } else {
             return ProposalState.Defeated;
         }
+    }
+// 投票期間endがうまく定義できず、そこだけ変えている。
+    function execute(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public payable virtual override returns (uint256) {
+        uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+
+        ProposalState status = state(proposalId);
+        // require(
+        //     status == ProposalState.Succeeded || status == ProposalState.Queued,
+        //     "Governor: proposal not successful"
+        // );
+        _proposals[proposalId].executed = true;
+
+        emit ProposalExecuted(proposalId);
+
+        _beforeExecute(proposalId, targets, values, calldatas, descriptionHash);
+        _execute(proposalId, targets, values, calldatas, descriptionHash);
+        _afterExecute(proposalId, targets, values, calldatas, descriptionHash);
+
+        return proposalId;
     }
 
     receive() override external payable {}
