@@ -62,7 +62,6 @@ describe('Gov', function () {
       );
       return ret;
     } catch (e) {
-      console.log('error------------');
       console.log(e);
     }
   }
@@ -74,7 +73,6 @@ describe('Gov', function () {
       grantAmount,
     ]);
     const description = 'Proposal #1: Give grant to team';
-    // const description = '0x';
 
     const targets = [token.address];
     const values = [0];
@@ -87,78 +85,55 @@ describe('Gov', function () {
       );
       return ret;
     } catch (e) {
-      console.log('error------------');
       console.log(e);
     }
   }
 
   async function getVotes(account, blockNumber, gov) {
-    console.log('getVotes--------------');
-
     try {
       const ret = await gov.getVotes(account, blockNumber);
       return ret;
     } catch (e) {
-      console.log('error##------------');
       console.log(e);
     }
   }
 
   async function getProposal(proposalId, gov) {
     try {
-      console.log('const ret = await gov.proposal_[proposalId]--');
-      // const ret = await gov._proposals[proposalId];
       const ret = await gov.getProposal_(proposalId);
       return ret;
     } catch (e) {
-      console.log('error##------------');
       console.log(e);
     }
   }
 
   async function castVote(proposalId, support, gov) {
-    console.log('ret----castVote----------');
     try {
       const ret = await gov.castVote(proposalId, support);
       console.log(ret);
       return ret;
     } catch (e) {
-      console.log('cast vote error##------------');
       console.log(e);
     }
   }
 
   describe('Gov', function () {
     it('deploy', async function () {
-      console.log('------------1');
       const { token, gov, owner, otherAccount } = await loadFixture(
         deployGovFixture
       );
-
-      // console.log('----otherAccount.address');
-      // console.log(otherAccount.address);
       let ret = await propose(token, owner.address, gov);
-      console.log('retttttt---------------');
+      console.log('propose ret---------------');
       console.log(ret);
 
-      // const proposalId = await hashProposal(token, owner.address, gov);
-      // console.log('ret--hash-proposal-------------');
-      // console.log(proposalId);
-      // const id_ = proposalId.toString();
-      // console.log('id_');
-      // console.log(id_);
-      // const proposalId_ = new ethers.BigNumber(id_);
-      // console.log('proposalId_*****************************');
-      // console.log(proposalId_);
-      console.log('#############---------------');
-      // ret = await getProposal(proposalId, gov);
-      console.log('*************ret*************');
-      console.log('*************ret*************');
-      console.log('*************ret*************');
-      // console.log(ret);
+      const proposalId = await hashProposal(token, owner.address, gov);
 
-      console.log('getProposal---');
-      ret = await getProposal(627, gov);
+      const id_ = proposalId.toString();
+      console.log('proposalId ret---------------');
+      console.log(ret);
+
+      ret = await getProposal(id_, gov);
+      console.log('getProposal ret---------------');
       console.log(ret);
     });
   });

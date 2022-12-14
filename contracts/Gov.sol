@@ -6,10 +6,23 @@ import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 
+// utils
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/utils/Timers.sol";
+
+
 contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
+    using Timers for Timers.BlockNumber;
+    using SafeCast for uint256;
 
-    mapping(uint256 => ProposalCore) private _proposals;
+    mapping(uint256 => ProposalCore) _proposals;
 
+    // struct ProposalCore {
+    //     Timers.BlockNumber voteStart;
+    //     Timers.BlockNumber voteEnd;
+    //     bool executed;
+    //     bool canceled;
+    // }
 
     constructor(IVotes _token) Governor("cadaoGovernor") GovernorVotes(_token) GovernorVotesQuorumFraction(4){
 
@@ -39,25 +52,26 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         return ret;
     }
 
-    function propose(
+    function getProposal_(
+        uint256 proposalId
+        ) public view returns (ProposalCore memory){
+            return _proposals[proposalId];
+    }
+
+function propose(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         string memory description
     ) public virtual override returns (uint256) {
-        // uint256 voted_num = getVotes(_msgSender(),3);//ここに問題ありそう
-        // require(false,"eeeeeeeeeeeeeeeeeeee");
-//         uint256 pT = proposalThreshold(); //これは問題なさそう
-//         require(false,"2222EEEEEEEEEEEEE");
-// // ----------------これより下-----------------------
-//         require(
-//             voted_num >= pT,
-//             "Governor: proposer votes below proposal threshold"
-//         );
-// ----------------これより上-----------------------
+        // require(
+        //     getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
+        //     "Governor: proposer votes below proposal threshold"
+        // );
 
         // ここでハッシュ化している
         uint256 proposalId = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
+
         require(targets.length == values.length, "Governor: invalid proposal length");
         require(targets.length == calldatas.length, "Governor: invalid proposal length");
         require(targets.length > 0, "Governor: empty proposal");
@@ -66,16 +80,18 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         // proposalsに既存で存在していなかった場合どうなるんや？
         // proposalCoreって型はどんな型だろう？createdした時と同じ型かな？
         ProposalCore storage proposal = _proposals[proposalId];
+        // ProposalCore storage proposal = _proposals[1];
         // statusが有効かどうか確認してる
-        // require(proposal.voteStart.isUnset(), "Governor: proposal already exists");
+        require(proposal.voteStart.isUnset(), "Governor: proposal already exists");
 
 
         // --------------期限の定義-----------------
-        uint256 snapshot = votingDelay();
-        uint256 deadline = 0;
 
-        // proposal.voteStart.setDeadline(snapshot);
-        // proposal.voteEnd.setDeadline(deadline);
+        uint64 snapshot = block.number.toUint64() + votingDelay().toUint64();
+        uint64 deadline = snapshot + votingPeriod().toUint64();
+
+        proposal.voteStart.setDeadline(snapshot);
+        proposal.voteEnd.setDeadline(deadline);
         // --------------期限の定義-----------------
 
         emit ProposalCreated(
@@ -87,10 +103,10 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
             calldatas,
             snapshot,
             deadline,
-            "aaaaaa"
+            description
         );
 
         return proposalId;
-
     }
+    receive() override external payable {}
 }
