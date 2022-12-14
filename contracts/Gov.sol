@@ -25,7 +25,15 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
     // }
 
     constructor(IVotes _token) Governor("cadaoGovernor") GovernorVotes(_token) GovernorVotesQuorumFraction(4){
+        ProposalCore storage proposal = _proposals[0];
+        uint64 snapshot = 9;
+        uint64 deadline = 100;
 
+        // proposal.voteStart.setDeadline(snapshot);
+        proposal.voteStart._deadline = snapshot;
+        proposal.voteEnd._deadline = deadline;
+        // proposal.voteEnd.setDeadline(deadline);
+        // proposal.voteEnd.setDeadline(deadline);
     }
 
     function votingDelay() public pure override returns (uint256) {
@@ -82,16 +90,17 @@ function propose(
         ProposalCore storage proposal = _proposals[proposalId];
         // ProposalCore storage proposal = _proposals[1];
         // statusが有効かどうか確認してる
-        require(proposal.voteStart.isUnset(), "Governor: proposal already exists");
+        // require(proposal.voteStart.isUnset(), "Governor: proposal already exists");
 
 
         // --------------期限の定義-----------------
 
         uint64 snapshot = block.number.toUint64() + votingDelay().toUint64();
         uint64 deadline = snapshot + votingPeriod().toUint64();
-
         proposal.voteStart.setDeadline(snapshot);
-        proposal.voteEnd.setDeadline(deadline);
+        // proposal.voteEnd.setDeadline(deadline);
+        proposal.voteEnd._deadline = deadline;
+
         // --------------期限の定義-----------------
 
         emit ProposalCreated(
@@ -108,5 +117,71 @@ function propose(
 
         return proposalId;
     }
+
+    function proposalSnapshot(uint256 proposalId) public view virtual override returns (uint256) {
+        return _proposals[proposalId].voteStart.getDeadline();
+    }
+
+    function _castVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        string memory reason,
+        bytes memory params
+    ) internal virtual override returns (uint256) {
+        ProposalCore storage proposal = _proposals[proposalId];
+        require(state(proposalId) == ProposalState.Active, "Governor: vote not currently active");
+
+        uint256 weight = _getVotes(account, proposal.voteStart.getDeadline(), params);
+        // require(false," *** unyaaaaaaa AAA*******************");
+        // uint256 weight = 10;
+        _countVote(proposalId, account, support, weight, params);
+
+        if (params.length == 0) {
+            emit VoteCast(account, proposalId, support, weight, reason);
+        } else {
+            emit VoteCastWithParams(account, proposalId, support, weight, reason, params);
+        }
+
+        return weight;
+    }
+
+    function state(uint256 proposalId) public view virtual override returns (ProposalState) {
+        ProposalCore storage proposal = _proposals[proposalId];
+
+        if (proposal.executed) {
+            return ProposalState.Executed;
+        }
+        // require(true, "EEEEEEEEEEEEEEE");
+        if (proposal.canceled) {
+            return ProposalState.Canceled;
+        }
+
+        uint256 snapshot = proposalSnapshot(proposalId);
+
+        if (snapshot == 0) {
+            revert("Governor: unknown proposal id");
+        }
+
+        if (snapshot >= block.number) {
+            // ここに入っている
+            return ProposalState.Pending;
+        }
+
+        uint256 deadline = proposalDeadline(proposalId);
+
+        // if (deadline >= block.number) {
+            return ProposalState.Active;
+        // }
+        require(false, "DDDDDDDDDDDDD");
+
+        // 充分票を得られた or voteが終わった？
+        if (_quorumReached(proposalId) && _voteSucceeded(proposalId)) {
+            return ProposalState.Succeeded;
+        } else {
+            return ProposalState.Defeated;
+        }
+    }
+
     receive() override external payable {}
 }

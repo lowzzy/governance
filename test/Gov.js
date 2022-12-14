@@ -91,6 +91,15 @@ describe('Gov', function () {
     }
   }
 
+  async function getDeadLine(proposalId, gov) {
+    try {
+      const ret = await gov.proposalDeadline(proposalId);
+      return ret;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   async function getSnapshot(proposalId, gov) {
     try {
       const ret = await gov.proposalSnapshot(proposalId);
@@ -138,60 +147,70 @@ describe('Gov', function () {
       console.log(ret);
 
       console.log('########## Mining ##########');
+
+      const proposalId = await hashProposal(token, owner.address, gov);
+
+      const id_ = proposalId.toString();
+      console.log('proposalId ret---------------');
+      console.log(ret);
+
+      // ret = await getProposal(0, gov);
+      // console.log('getProposal ret 0 ---------------');
+      // console.log(ret);
+
+      ret = await getProposal(id_, gov);
+      console.log('getProposal ret---------------');
+      console.log(ret);
+
       // mine 256 blocks
-      ret = await network.provider.send('hardhat_mine', ['0x1']);
-      console.log(ret);
-      console.log('########## ########## ##########');
-
-      // const proposalId = await hashProposal(token, owner.address, gov);
-
-      // const id_ = proposalId.toString();
-      // console.log('proposalId ret---------------');
-      // console.log(ret);
-
-      ret = await getProposal(0, gov);
-      console.log('getProposal ret 0 ---------------');
+      // 7 -> state = 0
+      // 8 -> state = undefined
+      ret = await network.provider.send('hardhat_mine', ['0x8']);
+      ret = await getState(id_, gov);
+      console.log('get state ret id_ ---------------');
       console.log(ret);
 
-      // ret = await getProposal(id_, gov);
-      // console.log('getProposal ret---------------');
+      // blockNumber = await ethers.provider.getBlockNumber();
+      // console.log('blockNumber----');
+      // console.log(blockNumber);
+
+      // ret = await getState(0, gov);
+      // console.log('get state ret 0 ---------------');
       // console.log(ret);
 
-      // ret = await getState(id_, gov);
-      // console.log('get state ret id_ ---------------');
-      // console.log(ret);
-      ret = await getState(0, gov);
-      console.log('get state ret 0 ---------------');
+      ret = await getSnapshot(id_, gov);
+      console.log('get snapshot ret---------------');
       console.log(ret);
+      // ret = await getSnapshot(0, gov);
+      // console.log('get snapshot ret 0 ---------------');
+      // console.log(ret);
 
-      // ret = await getSnapshot(id_, gov);
-      // console.log('get snapshot ret---------------');
-      // console.log(ret);
-      ret = await getSnapshot(0, gov);
-      console.log('get snapshot ret 0 ---------------');
+      // ret = await network.provider.send('hardhat_mine', ['0x1']);
+      // blockNumber = await ethers.provider.getBlockNumber();
+      // console.log('blockNumber----');
+      // console.log(blockNumber);
+
+      ret = await getDeadLine(id_, gov);
+      console.log('get deadline ret id_ ---------------');
       console.log(ret);
+      // ret = await getDeadLine(0, gov);
+      // console.log('get deadline ret 0 ---------------');
+      // console.log(ret);
 
       // let blockNumber = await ethers.provider.getBlockNumber();
       // console.log('blockNumber----');
       // console.log(blockNumber);
 
-      // mine 256 blocks
-      ret = await network.provider.send('hardhat_mine', ['0x1']);
+      // const support = 0;
 
-      blockNumber = await ethers.provider.getBlockNumber();
-      console.log('blockNumber----');
-      console.log(blockNumber);
+      // ret = await castVote(0, support, gov);
+      // console.log('castVote ret 0 ---------------');
+      // console.log(ret);
 
       const support = 0;
-
-      ret = await castVote(0, support, gov);
-      console.log('castVote ret 0 ---------------');
+      ret = await castVote(id_, support, gov);
+      console.log('castVote ret---------------');
       console.log(ret);
-
-      // const support = 0;
-      // ret = await castVote(id_, support, gov);
-      // console.log('castVote ret---------------');
-      // console.log(ret);
     });
   });
 });
