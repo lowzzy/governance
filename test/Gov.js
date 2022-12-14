@@ -9,7 +9,9 @@ const {
   ethers: {
     utils: { Interface, keccak256 },
   },
+  network,
 } = require('hardhat');
+
 // ------------------------------
 const { solidity } = require('ethereum-waffle');
 const { expect } = require('chai');
@@ -40,17 +42,8 @@ describe('Gov', function () {
       toAddress,
       grantAmount,
     ]);
-    console.log('----------transferCalldata-------');
-    console.log(transferCalldata);
+
     const description = 'Proposal #1: Give grant to team';
-    // await governor.propose(
-    //   [tokenAddress],
-    //   [0],
-    //   [transferCalldata],
-    //   “Proposal #1: Give grant to team”,
-    // );
-    console.log('token.address----');
-    console.log(token.address);
     const targets = [token.address];
     const values = [0];
     try {
@@ -98,6 +91,24 @@ describe('Gov', function () {
     }
   }
 
+  async function getSnapshot(proposalId, gov) {
+    try {
+      const ret = await gov.proposalSnapshot(proposalId);
+      return ret;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  async function getState(proposalId, gov) {
+    try {
+      const ret = await gov.state(proposalId);
+      return ret;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   async function getProposal(proposalId, gov) {
     try {
       const ret = await gov.getProposal_(proposalId);
@@ -126,15 +137,61 @@ describe('Gov', function () {
       console.log('propose ret---------------');
       console.log(ret);
 
-      const proposalId = await hashProposal(token, owner.address, gov);
+      console.log('########## Mining ##########');
+      // mine 256 blocks
+      ret = await network.provider.send('hardhat_mine', ['0x1']);
+      console.log(ret);
+      console.log('########## ########## ##########');
 
-      const id_ = proposalId.toString();
-      console.log('proposalId ret---------------');
+      // const proposalId = await hashProposal(token, owner.address, gov);
+
+      // const id_ = proposalId.toString();
+      // console.log('proposalId ret---------------');
+      // console.log(ret);
+
+      ret = await getProposal(0, gov);
+      console.log('getProposal ret 0 ---------------');
       console.log(ret);
 
-      ret = await getProposal(id_, gov);
-      console.log('getProposal ret---------------');
+      // ret = await getProposal(id_, gov);
+      // console.log('getProposal ret---------------');
+      // console.log(ret);
+
+      // ret = await getState(id_, gov);
+      // console.log('get state ret id_ ---------------');
+      // console.log(ret);
+      ret = await getState(0, gov);
+      console.log('get state ret 0 ---------------');
       console.log(ret);
+
+      // ret = await getSnapshot(id_, gov);
+      // console.log('get snapshot ret---------------');
+      // console.log(ret);
+      ret = await getSnapshot(0, gov);
+      console.log('get snapshot ret 0 ---------------');
+      console.log(ret);
+
+      // let blockNumber = await ethers.provider.getBlockNumber();
+      // console.log('blockNumber----');
+      // console.log(blockNumber);
+
+      // mine 256 blocks
+      ret = await network.provider.send('hardhat_mine', ['0x1']);
+
+      blockNumber = await ethers.provider.getBlockNumber();
+      console.log('blockNumber----');
+      console.log(blockNumber);
+
+      const support = 0;
+
+      ret = await castVote(0, support, gov);
+      console.log('castVote ret 0 ---------------');
+      console.log(ret);
+
+      // const support = 0;
+      // ret = await castVote(id_, support, gov);
+      // console.log('castVote ret---------------');
+      // console.log(ret);
     });
   });
 });
