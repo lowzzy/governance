@@ -29,6 +29,16 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         return super.quorum(blockNumber);
     }
 
+    function exhashProposal(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+        ) public view returns (uint256){
+        uint256 ret = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
+        return ret;
+    }
+
     function propose(
         address[] memory targets,
         uint256[] memory values,
