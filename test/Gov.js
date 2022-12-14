@@ -3,6 +3,14 @@ const {
   loadFixture,
 } = require('@nomicfoundation/hardhat-network-helpers');
 const { anyValue } = require('@nomicfoundation/hardhat-chai-matchers/withArgs');
+// ------------------------------
+// https://github.com/DavitTorchyan/Proposal/blob/6d9eb76a50d453f4efcab00e27bdc6c1fcd25d4e/test/Proposal.test.js
+const {
+  ethers: {
+    utils: { Interface, keccak256 },
+  },
+} = require('hardhat');
+// ------------------------------
 const { solidity } = require('ethereum-waffle');
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
@@ -59,11 +67,65 @@ describe('Gov', function () {
     }
   }
 
-  async function getVotes(account, blockNumber, gov) {
-    console.log('num--------------');
-    const num = await gov.getVotes(account, blockNumber);
+  async function hashProposal(token, toAddress, gov) {
+    const grantAmount = 10;
+    const transferCalldata = token.interface.encodeFunctionData('transfer', [
+      toAddress,
+      grantAmount,
+    ]);
+    const description = 'Proposal #1: Give grant to team';
+    // const description = '0x';
 
-    console.log(num);
+    const targets = [token.address];
+    const values = [0];
+    try {
+      const ret = await gov.exhashProposal(
+        targets,
+        values,
+        [transferCalldata],
+        description
+      );
+      return ret;
+    } catch (e) {
+      console.log('error------------');
+      console.log(e);
+    }
+  }
+
+  async function getVotes(account, blockNumber, gov) {
+    console.log('getVotes--------------');
+
+    try {
+      const ret = await gov.getVotes(account, blockNumber);
+      return ret;
+    } catch (e) {
+      console.log('error##------------');
+      console.log(e);
+    }
+  }
+
+  async function getProposal(proposalId, gov) {
+    try {
+      console.log('const ret = await gov.proposal_[proposalId]--');
+      // const ret = await gov._proposals[proposalId];
+      const ret = await gov.getProposal_(proposalId);
+      return ret;
+    } catch (e) {
+      console.log('error##------------');
+      console.log(e);
+    }
+  }
+
+  async function castVote(proposalId, support, gov) {
+    console.log('ret----castVote----------');
+    try {
+      const ret = await gov.castVote(proposalId, support);
+      console.log(ret);
+      return ret;
+    } catch (e) {
+      console.log('cast vote error##------------');
+      console.log(e);
+    }
   }
 
   describe('Gov', function () {
@@ -76,16 +138,28 @@ describe('Gov', function () {
       // console.log('----otherAccount.address');
       // console.log(otherAccount.address);
       let ret = await propose(token, owner.address, gov);
-      console.log('ret---------------');
+      console.log('retttttt---------------');
       console.log(ret);
 
-      // let a = await gov.hasVoted(0, owner.address);
-      // console.log('a-----------');
-      // console.log(a);
-      // a = await gov.hasVoted(1, owner.address);
-      // console.log('a-----------');
-      // console.log(a);
-      // console.log('------------3');
+      // const proposalId = await hashProposal(token, owner.address, gov);
+      // console.log('ret--hash-proposal-------------');
+      // console.log(proposalId);
+      // const id_ = proposalId.toString();
+      // console.log('id_');
+      // console.log(id_);
+      // const proposalId_ = new ethers.BigNumber(id_);
+      // console.log('proposalId_*****************************');
+      // console.log(proposalId_);
+      console.log('#############---------------');
+      // ret = await getProposal(proposalId, gov);
+      console.log('*************ret*************');
+      console.log('*************ret*************');
+      console.log('*************ret*************');
+      // console.log(ret);
+
+      console.log('getProposal---');
+      ret = await getProposal(627, gov);
+      console.log(ret);
     });
   });
 });
