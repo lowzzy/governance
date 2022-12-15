@@ -22,8 +22,10 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         uint64 snapshot = 9;
         uint64 deadline = 100;
 
-        proposal.voteStart._deadline = snapshot;
-        proposal.voteEnd._deadline = deadline;
+        proposal.voteStart.setDeadline(snapshot);
+        proposal.voteEnd.setDeadline(deadline);
+        // proposal.voteStart._deadline = snapshot;
+        // proposal.voteEnd._deadline = deadline;
 
     }
 
@@ -66,11 +68,8 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
-        string memory description
+        string memory /*description*/
     ) public virtual override returns (uint256) {
-        address target_ = targets[0];
-        uint256 value_ = values[0];
-
         require(
             getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
             "Governor: proposer votes below proposal threshold"
@@ -89,41 +88,6 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         return proposalId;
     }
 
-        // 投票期間endがうまく定義できず、そこだけ変えている。
-    function state(uint256 proposalId) public view virtual override returns (ProposalState) {
-        ProposalCore storage proposal = _proposals[proposalId];
-
-        if (proposal.executed) {
-            return ProposalState.Executed;
-        }
-        // require(true, "EEEEEEEEEEEEEEE");
-        if (proposal.canceled) {
-            return ProposalState.Canceled;
-        }
-
-        uint256 snapshot = proposalSnapshot(proposalId);
-
-        if (snapshot == 0) {
-            revert("Governor: unknown proposal id");
-        }
-
-        if (snapshot >= block.number) {
-            // ここに入っている
-            return ProposalState.Pending;
-        }
-
-        uint256 deadline = proposalDeadline(proposalId);
-
-            return ProposalState.Active;
-
-        if (_quorumReached(proposalId) && _voteSucceeded(proposalId)) {
-            return ProposalState.Succeeded;
-        } else {
-            return ProposalState.Defeated;
-        }
-    }
-
-
 // 投票期間endがうまく定義できず、そこだけ変えている
 // 変更点
 // proposalはtransferのみなのでがcalldataは必要ない
@@ -132,7 +96,7 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
-        bytes32 descriptionHash
+        bytes32 /*descriptionHash*/
     ) public payable override returns (uint256) {
         uint256 proposalId = hashProposal(targets, values,calldatas,'');
 
@@ -147,5 +111,42 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         return proposalId;
     }
 
+     function state(uint256 proposalId) public view virtual override returns (ProposalState) {
+        ProposalCore storage proposal = _proposals[proposalId];
+
+        if (proposal.executed) {
+            return ProposalState.Executed;
+        }
+        // require(true, "EEEEEEEEEEEEEEE");
+        if (proposal.canceled) {
+            return ProposalState.Canceled;
+        }
+
+        // uint256 snapshot = proposalSnapshot(proposalId);
+        uint256 snapshot = _proposals[proposalId].voteStart._deadline;
+
+        if (snapshot == 0) {
+            revert("Governor: unknown proposal id");
+        }
+
+        if (snapshot >= block.number) {
+            // ここに入っている
+            return ProposalState.Pending;
+        }
+
+        uint256 deadline = proposalDeadline(proposalId);
+
+        // if (deadline >= block.number) {
+            return ProposalState.Active;
+        // }
+        // require(false, "DDDDDDDDDDDDD");
+
+        // 充分票を得られた or voteが終わった？
+        if (_quorumReached(proposalId) && _voteSucceeded(proposalId)) {
+            return ProposalState.Succeeded;
+        } else {
+            return ProposalState.Defeated;
+        }
+    }
     receive() override external payable {}
 }
