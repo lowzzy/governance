@@ -7,7 +7,9 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 137,
+      allowUnlimitedContractSize: true,
     },
+    localhost: { allowUnlimitedContractSize: true },
   },
   gasReporter: {
     enabled: true,
