@@ -99,19 +99,8 @@ describe('Gov', function () {
   }
 
   async function propose(target_, value_, gov) {
-    // const grantAmount = 10; // ここを変えるとend,startの時刻が格納できたりできなくなったりする
-    // const transferCalldata = token.interface.encodeFunctionData('transfer', [
-    //   toAddress,
-    //   grantAmount,
-    // ]);
-    console.log('PROPOSE ----');
     try {
-      const ret = await gov.propose(
-        [target_],
-        [value_],
-        ['aaaaaaaaaaaaaaa'],
-        ''
-      );
+      const ret = await gov.propose([target_], [value_], ['0x'], '');
       return ret;
     } catch (e) {
       console.log(e);
