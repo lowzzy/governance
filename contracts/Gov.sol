@@ -15,6 +15,13 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
     using Timers for Timers.BlockNumber;
     using SafeCast for uint256;
 
+    DoubleEndedQueue.Bytes32Deque private _governanceCall;
+
+
+    // event ProposalCreated(uint256 proposalId, address proposer, address target, uint256 value, string signatures, uint256 startBlock, uint256 endBlock);
+
+    // bytes[] public constant calldata_ = keccak256("transfer(address recipient, uint256 amount)");
+
     mapping(uint256 => ProposalCore) _proposals;
 
     // struct ProposalCore {
@@ -50,14 +57,26 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         return super.quorum(blockNumber);
     }
 
+    function getCalldata(
+        address target,
+        uint256 value
+    ) public payable returns (bytes memory) {
+        return (abi.encodeWithSignature("transfer(address, uint256)", target, value));
+    }
+
+
+     function hashProposal(
+        address target,
+        uint256 value
+    ) public pure virtual returns (uint256) {
+        return uint256(keccak256(abi.encode(target, value)));
+    }
+
     function exhashProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description
-        ) public view returns (uint256){
-        uint256 ret = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
-        return ret;
+        address target,
+        uint256 value
+        ) public pure returns (uint256){
+        return hashProposal(target, value);
     }
 
     function getProposal_(
@@ -66,23 +85,19 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
             return _proposals[proposalId];
     }
 
+// 変更点
+// calldataを削除する
 function propose(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description
-    ) public virtual override returns (uint256) {
+        address target,
+        uint256 value
+    ) public returns (uint256) {
         // require(
         //     getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
         //     "Governor: proposer votes below proposal threshold"
         // );
 
         // ここでハッシュ化している
-        uint256 proposalId = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
-
-        require(targets.length == values.length, "Governor: invalid proposal length");
-        require(targets.length == calldatas.length, "Governor: invalid proposal length");
-        require(targets.length > 0, "Governor: empty proposal");
+        uint256 proposalId = hashProposal(target, value);
 
         // proposalsって配列が存在していて、ハッシュ化した数値をindexとして提案を取得している
         // proposalsに既存で存在していなかった場合どうなるんや？
@@ -98,22 +113,21 @@ function propose(
         uint64 snapshot = block.number.toUint64() + votingDelay().toUint64();
         uint64 deadline = snapshot + votingPeriod().toUint64();
         proposal.voteStart.setDeadline(snapshot);
-        // proposal.voteEnd.setDeadline(deadline);
-        proposal.voteEnd._deadline = deadline;
+        proposal.voteEnd.setDeadline(deadline);
+
 
         // --------------期限の定義-----------------
 
-        emit ProposalCreated(
-            proposalId,
-            _msgSender(),
-            targets,
-            values,
-            new string[](targets.length),
-            calldatas,
-            snapshot,
-            deadline,
-            description
-        );
+        // 引数合わせてoverriteするのがだるいのでskip
+        // emit ProposalCreated(
+        //     proposalId,
+        //     _msgSender(),
+        //     target,
+        //     value,
+        //     new string[],
+        //     snapshot,
+        //     deadline
+        // );
 
         return proposalId;
     }
@@ -159,14 +173,57 @@ function propose(
             return ProposalState.Defeated;
         }
     }
-// 投票期間endがうまく定義できず、そこだけ変えている。
+
+// override~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // function _beforeExecute(
+    //     uint256, /* proposalId */
+    //     address target,
+    //     uint256 value
+    // ) internal virtual {
+    //     if (_executor() != address(this)) {
+    //             if (target == address(this)) {
+    //                 // _governanceCall.pushBack(keccak256(calldatas[i]));
+    //                 // calldata_はtransferなのであらかじめグローバルで定義しておく.
+    //                 // calldata_ = ???
+    //                 _governanceCall.pushBack(getCalldata(target, value));
+    //             }
+
+    //     }
+    // }
+
+    function _execute(
+        uint256, /* proposalId */
+        address target,
+        uint256 value
+    ) internal virtual {
+        string memory errorMessage = "Governor: call reverted without message";
+            (bool success, bytes memory returndata) = target.call{value: value}(getCalldata(target,value));
+            Address.verifyCallResult(success, returndata, errorMessage);
+    }
+
+    // function _afterExecute(
+    //     uint256, /* proposalId */
+    //     address, /* target */
+    //     uint256 /* value */
+    // ) internal virtual {
+    //     if (_executor() != address(this)) {
+    //         if (!_governanceCall.empty()) {
+    //             _governanceCall.clear();
+    //         }
+    //     }
+    // }
+// override~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+// 投票期間endがうまく定義できず、そこだけ変えている
+// 変更点
+// proposalはtransferのみなのでがcalldataは必要ない
+// valueとtargetのみで分かる
     function execute(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) public payable virtual override returns (uint256) {
-        uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+        address target,
+        uint256 value
+    ) public payable returns (uint256) {
+        uint256 proposalId = hashProposal(target, value);
 
         ProposalState status = state(proposalId);
         // require(
@@ -177,9 +234,9 @@ function propose(
 
         emit ProposalExecuted(proposalId);
 
-        _beforeExecute(proposalId, targets, values, calldatas, descriptionHash);
-        _execute(proposalId, targets, values, calldatas, descriptionHash);
-        _afterExecute(proposalId, targets, values, calldatas, descriptionHash);
+        // _beforeExecute(proposalId, [target], [value],calldata_,calldata_);
+        _execute(proposalId, target, value);
+        // _afterExecute(proposalId, [target], [value]);
 
         return proposalId;
     }
