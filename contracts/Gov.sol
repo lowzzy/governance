@@ -35,11 +35,23 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         return 45; // 10 minutes
     }
 
+    function exhashProposal(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+        ) public view returns (uint256){
+        uint256 ret = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
+        return ret;
+    }
+
      function hashProposal(
-        address target,
-        uint256 value
-    ) public pure virtual returns (uint256) {
-        return uint256(keccak256(abi.encode(target, value)));
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory /*calldatas*/,
+        bytes32 /*descriptionHash*/
+    ) public pure virtual override returns (uint256) {
+        return uint256(keccak256(abi.encode(targets[0], values[0])));
     }
 
     function getProposal_(
@@ -63,7 +75,7 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
             getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
             "Governor: proposer votes below proposal threshold"
         );
-        uint256 proposalId = hashProposal(target_, value_);
+        uint256 proposalId = hashProposal(targets, values,calldatas,'');
 
         ProposalCore storage proposal = _proposals[proposalId];
         require(proposal.voteStart.isUnset(), "Governor: proposal already exists");
@@ -117,10 +129,12 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
 // proposalはtransferのみなのでがcalldataは必要ない
 // valueとtargetのみで分かる
     function execute(
-        address target_,
-        uint256 value_
-    ) public payable returns (uint256) {
-        uint256 proposalId = hashProposal(target_, value_);
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public payable override returns (uint256) {
+        uint256 proposalId = hashProposal(targets, values,calldatas,'');
 
         ProposalState status = state(proposalId);
 
@@ -128,7 +142,7 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
 
         emit ProposalExecuted(proposalId);
 
-        (bool fund, ) = payable(target_).call{value: value_}("");
+        (bool fund, ) = payable(targets[0]).call{value: values[0]}("");
 
         return proposalId;
     }
