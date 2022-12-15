@@ -91,7 +91,12 @@ describe('Gov', function () {
 
   async function DoExecute(target_, value_, gov) {
     try {
-      const ret = await gov.execute(target_, value_);
+      const ret = await gov.execute(
+        [target_],
+        [value_],
+        ['0x'],
+        ethers.constants.HashZero
+      );
       return ret;
     } catch (e) {
       console.log(e);
@@ -109,7 +114,7 @@ describe('Gov', function () {
 
   async function hashProposal(target_, value_, gov) {
     try {
-      const ret = await gov.hashProposal(target_, value_);
+      const ret = await gov.exhashProposal([target_], [value_], ['0x'], '');
       return ret;
     } catch (e) {
       console.log(e);
@@ -284,7 +289,53 @@ describe('Gov', function () {
       // ***********************************************
 
       const proposalId = await hashProposal(otherAccount.address, value_, gov);
+      console.log('proposalId----------');
+      console.log(proposalId);
       const id_ = proposalId.toString();
+
+      // ***********************************************
+      // ************** block number *********************
+      // ***********************************************
+      let blockNumber = await ethers.provider.getBlockNumber();
+      console.log('blockNumber----');
+      console.log(blockNumber);
+
+      ret = await network.provider.send('hardhat_mine', ['0x10']);
+      blockNumber = await ethers.provider.getBlockNumber();
+
+      blockNumber = await ethers.provider.getBlockNumber();
+      console.log('blockNumber----');
+      console.log(blockNumber);
+
+      // ***********************************************
+      // ********** snapshot deadline ******************
+      // ***********************************************
+
+      ret = await getProposal(id_, gov);
+      console.log('getProposal ret---------------');
+      console.log(ret);
+
+      ret = await getSnapshot(id_, gov);
+      console.log('get snapshot ret---------------');
+      console.log(ret);
+
+      ret = await getDeadLine(id_, gov);
+      console.log('get deadline ret id_ ---------------');
+      console.log(ret);
+
+      console.log('###################################');
+
+      ret = await getProposal(0, gov);
+      console.log('getProposal ret---------------');
+      console.log(ret);
+
+      ret = await getSnapshot(0, gov);
+      console.log('get snapshot ret---------------');
+      console.log(ret);
+
+      ret = await getDeadLine(0, gov);
+      console.log('get deadline ret id_ ---------------');
+      console.log(ret);
 
       // ***********************************************
       // ************** castVote *********************
