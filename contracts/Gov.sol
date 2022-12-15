@@ -15,8 +15,6 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
     using Timers for Timers.BlockNumber;
     using SafeCast for uint256;
 
-    DoubleEndedQueue.Bytes32Deque private _governanceCall;
-
     mapping(uint256 => ProposalCore) _proposals;
 
     constructor(IVotes _token) Governor("cadaoGovernor") GovernorVotes(_token) GovernorVotesQuorumFraction(4){
@@ -37,33 +35,12 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         return 45; // 10 minutes
     }
 
-    // The following functions are overrides required by Solidity.
-
-    // function quorum(uint256 blockNumber) public view override(IGovernor, GovernorVotesQuorumFraction) returns (uint256) {
-    //     return super.quorum(blockNumber);
-    // }
-
-    function getCalldata(
-        address target,
-        uint256 value
-    ) public payable returns (bytes memory) {
-        return (abi.encodeWithSignature("transfer(address, uint256)", target, value));
-    }
-
-
      function hashProposal(
         address target,
         uint256 value
     ) public pure virtual returns (uint256) {
         return uint256(keccak256(abi.encode(target, value)));
     }
-
-    // function exhashProposal(
-    //     address target,
-    //     uint256 value
-    //     ) public pure returns (uint256){
-    //     return hashProposal(target, value);
-    // }
 
     function getProposal_(
         uint256 proposalId
@@ -77,10 +54,10 @@ function propose(
         address target,
         uint256 value
     ) public returns (uint256) {
-        // require(
-        //     getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
-        //     "Governor: proposer votes below proposal threshold"
-        // );
+        require(
+            getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
+            "Governor: proposer votes below proposal threshold"
+        );
         uint256 proposalId = hashProposal(target, value);
 
         ProposalCore storage proposal = _proposals[proposalId];
@@ -90,12 +67,10 @@ function propose(
         proposal.voteStart.setDeadline(snapshot);
         proposal.voteEnd.setDeadline(deadline);
 
-
-
         return proposalId;
     }
 
-    // 投票期間endがうまく定義できず、そこだけ変えている。
+        // 投票期間endがうまく定義できず、そこだけ変えている。
     function state(uint256 proposalId) public view virtual override returns (ProposalState) {
         ProposalCore storage proposal = _proposals[proposalId];
 
@@ -135,10 +110,10 @@ function propose(
 // proposalはtransferのみなのでがcalldataは必要ない
 // valueとtargetのみで分かる
     function execute(
-        address target,
-        uint256 value
+        address target_,
+        uint256 value_
     ) public payable returns (uint256) {
-        uint256 proposalId = hashProposal(target, value);
+        uint256 proposalId = hashProposal(target_, value_);
 
         ProposalState status = state(proposalId);
 
@@ -146,16 +121,7 @@ function propose(
 
         emit ProposalExecuted(proposalId);
 
-        address[] memory targets;
-        uint256[] memory values;
-        bytes[] memory calldatas;
-
-        targets[0] = target;
-        values[0] = value;
-        calldatas[0] = getCalldata(target, value);
-
-        _execute(proposalId,targets,values,calldatas,'');
-
+        (bool fund, ) = payable(target_).call{value: value_}("");
 
         return proposalId;
     }
