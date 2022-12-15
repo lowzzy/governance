@@ -99,7 +99,9 @@ describe('Gov', function () {
       grantAmount,
     ]);
 
-    const description = 'Proposal #1: Give grant to team';
+    // 100文字
+    const description =
+      'Proposal #1: Give grant to teamProposal #1: Give grant to teamProposal #1: Give grant to teamProposa';
     const targets = [token.address];
     const values = [0];
     try {
@@ -208,11 +210,13 @@ describe('Gov', function () {
 
       const id_ = proposalId.toString();
       console.log('proposalId ret---------------');
-      console.log(ret);
+      console.log(id_);
 
-      // ret = await getProposal(0, gov);
-      // console.log('getProposal ret 0 ---------------');
-      // console.log(ret);
+      ret = await network.provider.send('hardhat_mine', ['0x10']);
+
+      ret = await getProposal(0, gov);
+      console.log('getProposal ret 0 ---------------');
+      console.log(ret);
 
       ret = await getProposal(id_, gov);
       console.log('getProposal ret---------------');
@@ -221,7 +225,7 @@ describe('Gov', function () {
       // mine 256 blocks
       // 7 -> state = 0
       // 8 -> state = undefined
-      ret = await network.provider.send('hardhat_mine', ['0x8']);
+      // ret = await network.provider.send('hardhat_mine', ['0x8']);
       ret = await getState(id_, gov);
       console.log('get state ret id_ ---------------');
       console.log(ret);

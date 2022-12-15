@@ -72,10 +72,10 @@ function propose(
         bytes[] memory calldatas,
         string memory description
     ) public virtual override returns (uint256) {
-        // require(
-        //     getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
-        //     "Governor: proposer votes below proposal threshold"
-        // );
+        require(
+            getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
+            "Governor: proposer votes below proposal threshold"
+        );
 
         // ここでハッシュ化している
         uint256 proposalId = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
@@ -84,21 +84,15 @@ function propose(
         require(targets.length == calldatas.length, "Governor: invalid proposal length");
         require(targets.length > 0, "Governor: empty proposal");
 
-        // proposalsって配列が存在していて、ハッシュ化した数値をindexとして提案を取得している
-        // proposalsに既存で存在していなかった場合どうなるんや？
-        // proposalCoreって型はどんな型だろう？createdした時と同じ型かな？
         ProposalCore storage proposal = _proposals[proposalId];
-        // ProposalCore storage proposal = _proposals[1];
-        // statusが有効かどうか確認してる
-        // require(proposal.voteStart.isUnset(), "Governor: proposal already exists");
-
+        require(proposal.voteStart.isUnset(), "Governor: proposal already exists");
 
         // --------------期限の定義-----------------
 
         uint64 snapshot = block.number.toUint64() + votingDelay().toUint64();
         uint64 deadline = snapshot + votingPeriod().toUint64();
-        proposal.voteStart.setDeadline(snapshot);
-        // proposal.voteEnd.setDeadline(deadline);
+
+        proposal.voteStart._deadline = snapshot;
         proposal.voteEnd._deadline = deadline;
 
         // --------------期限の定義-----------------
@@ -119,7 +113,7 @@ function propose(
     }
 
     function proposalSnapshot(uint256 proposalId) public view virtual override returns (uint256) {
-        return _proposals[proposalId].voteStart.getDeadline();
+        return _proposals[proposalId].voteStart._deadline;
     }
 
     // 投票期間endがうまく定義できず、そこだけ変えている。
@@ -134,7 +128,7 @@ function propose(
             return ProposalState.Canceled;
         }
 
-        uint256 snapshot = proposalSnapshot(proposalId);
+        uint256 snapshot = proposal.voteStart._deadline;
 
         if (snapshot == 0) {
             revert("Governor: unknown proposal id");
