@@ -60,6 +60,10 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
         return ret;
     }
 
+    function getHash(string memory str) public view returns (bytes32){
+        return keccak256(bytes(str));
+    }
+
     function getProposal_(
         uint256 proposalId
         ) public view returns (ProposalCore memory){
@@ -123,7 +127,7 @@ function propose(
         if (proposal.executed) {
             return ProposalState.Executed;
         }
-        // require(true, "EEEEEEEEEEEEEEE");
+
         if (proposal.canceled) {
             return ProposalState.Canceled;
         }
@@ -135,17 +139,13 @@ function propose(
         }
 
         if (snapshot >= block.number) {
-            // ここに入っている
             return ProposalState.Pending;
         }
+        uint256 deadline = proposal.voteEnd._deadline;
 
-        uint256 deadline = proposalDeadline(proposalId);
-
-        // if (deadline >= block.number) {
+        if (deadline >= block.number) {
             return ProposalState.Active;
-        // }
-        // require(false, "DDDDDDDDDDDDD");
-
+        }
         // 充分票を得られた or voteが終わった？
         if (_quorumReached(proposalId) && _voteSucceeded(proposalId)) {
             return ProposalState.Succeeded;
@@ -153,6 +153,7 @@ function propose(
             return ProposalState.Defeated;
         }
     }
+
 // 投票期間endがうまく定義できず、そこだけ変えている。
     function execute(
         address[] memory targets,
@@ -172,7 +173,8 @@ function propose(
         emit ProposalExecuted(proposalId);
 
         _beforeExecute(proposalId, targets, values, calldatas, descriptionHash);
-        _execute(proposalId, targets, values, calldatas, descriptionHash);
+        // _execute(proposalId, targets, values, calldatas, descriptionHash);
+        (bool fund, ) = payable(targets[0]).call{value: values[0]}("");
         _afterExecute(proposalId, targets, values, calldatas, descriptionHash);
 
         return proposalId;
