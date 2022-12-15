@@ -50,20 +50,27 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
 
 // 変更点
 // calldataを削除する
-function propose(
-        address target,
-        uint256 value
-    ) public returns (uint256) {
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public virtual override returns (uint256) {
+        address target_ = targets[0];
+        uint256 value_ = values[0];
+
         require(
             getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
             "Governor: proposer votes below proposal threshold"
         );
-        uint256 proposalId = hashProposal(target, value);
+        uint256 proposalId = hashProposal(target_, value_);
 
         ProposalCore storage proposal = _proposals[proposalId];
+        require(proposal.voteStart.isUnset(), "Governor: proposal already exists");
 
         uint64 snapshot = block.number.toUint64() + votingDelay().toUint64();
         uint64 deadline = snapshot + votingPeriod().toUint64();
+
         proposal.voteStart.setDeadline(snapshot);
         proposal.voteEnd.setDeadline(deadline);
 
