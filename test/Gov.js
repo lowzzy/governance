@@ -16,7 +16,16 @@ const {
 const { solidity } = require('ethereum-waffle');
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
-const description = 'Proposal #1: Give grant to team';
+// 100文字
+const description_origin = 'pppppppppppppppppppppppppppppppppppppppppppppppp';
+// 'pppppProposal #1: Give grant to teamProposal #1: Give grant to teamProposal #1: Give grant to teamPr';
+
+let description = description_origin;
+// let i = 0;
+// while (i < 99) {
+//   description += description_origin;
+//   i += 1;
+// }
 
 describe('Gov', function () {
   // We define a fixture to reuse the same setup in every test.
@@ -198,14 +207,17 @@ describe('Gov', function () {
       const { token, gov, owner, otherAccount } = await loadFixture(
         deployGovFixture
       );
-      let ret = await propose(token, owner.address, gov);
+      let ret_ = await propose(token, owner.address, gov);
+      console.log('propose ret---------------');
+      console.log(ret_);
+      let ret = await propose(token, otherAccount.address, gov);
       console.log('propose ret---------------');
       console.log(ret);
 
       console.log('########## Mining ##########');
 
       // const proposalId = await hashProposal(token, owner.address, gov);
-      const proposalId = ret;
+      const proposalId = ret_;
 
       const id_ = proposalId.toString();
       console.log('proposalId ret---------------');
@@ -217,10 +229,6 @@ describe('Gov', function () {
       ret = await getProposal(id_, gov);
       console.log(ret);
 
-      // mine 256 blocks
-      // 7 -> state = 0
-      // 8 -> state = undefined
-      // ret = await network.provider.send('hardhat_mine', ['0x8']);
       console.log('get state ret id_ ---------------');
       ret = await getState(id_, gov);
       console.log(ret);
