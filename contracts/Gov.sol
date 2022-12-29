@@ -17,23 +17,7 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
 
     mapping(uint256 => ProposalCore) _proposals;
 
-    // struct ProposalCore {
-    //     Timers.BlockNumber voteStart;
-    //     Timers.BlockNumber voteEnd;
-    //     bool executed;
-    //     bool canceled;
-    // }
-
     constructor(IVotes _token) Governor("cadaoGovernor") GovernorVotes(_token) GovernorVotesQuorumFraction(4){
-        ProposalCore storage proposal = _proposals[0];
-        uint64 snapshot = 9;
-        uint64 deadline = 100;
-
-        // proposal.voteStart.setDeadline(snapshot);
-        proposal.voteStart._deadline = snapshot;
-        proposal.voteEnd._deadline = deadline;
-        // proposal.voteEnd.setDeadline(deadline);
-        // proposal.voteEnd.setDeadline(deadline);
     }
 
     function votingDelay() public pure override returns (uint256) {
@@ -173,8 +157,7 @@ function propose(
         emit ProposalExecuted(proposalId);
 
         _beforeExecute(proposalId, targets, values, calldatas, descriptionHash);
-        // _execute(proposalId, targets, values, calldatas, descriptionHash);
-        (bool fund, ) = payable(targets[0]).call{value: values[0]}("");
+        payable(targets[0]).call{value: values[0]}("");
         _afterExecute(proposalId, targets, values, calldatas, descriptionHash);
 
         return proposalId;
