@@ -6,19 +6,30 @@ import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 
+import "@openzeppelin/contracts/governance/compatibility/GovernorCompatibilityBravo.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+
 // utils
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/Timers.sol";
 
 
-contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
+contract Gov is Governor, GovernorCompatibilityBravo, GovernorVotes, GovernorVotesQuorumFraction, GovernorTimelockControl{
+
     using Timers for Timers.BlockNumber;
     using SafeCast for uint256;
 
     mapping(uint256 => ProposalCore) _proposals;
 
-    constructor(IVotes _token) Governor("cadaoGovernor") GovernorVotes(_token) GovernorVotesQuorumFraction(4){
-    }
+    // constructor(IVotes _token) Governor("cadaoGovernor") GovernorVotes(_token) GovernorVotesQuorumFraction(4){
+    // }
+    constructor(IVotes _token, TimelockController _timelock)
+        Governor("MyGovernor")
+        GovernorVotes(_token)
+        GovernorVotesQuorumFraction(4)
+        GovernorTimelockControl(_timelock)
+    {}
+
 
     function votingDelay() public pure override returns (uint256) {
         return 1; // 1 block
@@ -27,6 +38,11 @@ contract Gov is  GovernorCountingSimple, GovernorVotesQuorumFraction {
     function votingPeriod() public pure override returns (uint256) {
         return 45; // 10 minutes
     }
+
+    function proposalThreshold() public pure override returns (uint256) {
+        return 0;
+    }
+
 
     // The following functions are overrides required by Solidity.
 
@@ -59,7 +75,7 @@ function propose(
         uint256[] memory values,
         bytes[] memory calldatas,
         string memory description
-    ) public virtual override returns (uint256) {
+    ) public virtual override(Governor, GovernorCompatibilityBravo, IGovernor) returns (uint256) {
         require(
             getVotes(_msgSender(), block.number - 1) >= proposalThreshold(),
             "Governor: proposer votes below proposal threshold"
@@ -100,12 +116,12 @@ function propose(
         return proposalId;
     }
 
-    function proposalSnapshot(uint256 proposalId) public view virtual override returns (uint256) {
+    function proposalSnapshot(uint256 proposalId) public view virtual override(Governor, IGovernor) returns (uint256) {
         return _proposals[proposalId].voteStart._deadline;
     }
 
     // 投票期間endがうまく定義できず、そこだけ変えている。
-    function state(uint256 proposalId) public view virtual override returns (ProposalState) {
+    function state(uint256 proposalId) public view virtual override(Governor, IGovernor,GovernorTimelockControl) returns (ProposalState) {
         ProposalCore storage proposal = _proposals[proposalId];
 
         if (proposal.executed) {
@@ -144,7 +160,7 @@ function propose(
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) public payable virtual override returns (uint256) {
+    ) public payable virtual override(Governor, IGovernor) returns (uint256) {
         uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
 
         ProposalState status = state(proposalId);
@@ -161,6 +177,39 @@ function propose(
         _afterExecute(proposalId, targets, values, calldatas, descriptionHash);
 
         return proposalId;
+    }
+
+    function _execute(uint256 proposalId, address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+        internal
+        override(Governor, GovernorTimelockControl)
+    {
+        super._execute(proposalId, targets, values, calldatas, descriptionHash);
+    }
+
+    function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
+        internal
+        override(Governor, GovernorTimelockControl)
+        returns (uint256)
+    {
+        return super._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+   function _executor()
+        internal
+        view
+        override(Governor, GovernorTimelockControl)
+        returns (address)
+    {
+        return super._executor();
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(Governor, IERC165, GovernorTimelockControl)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 
     receive() override external payable {}
