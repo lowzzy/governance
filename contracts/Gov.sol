@@ -14,6 +14,13 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/utils/Timers.sol";
 
 
+// Governor: メイン
+// Bravo: 投票システム
+// GovernorVotes: 投票重み抽出
+// QuorumFraction: 定足数 <- いらないかも...?
+// TimelockControl: bravo使う時必要
+
+
 contract Gov is Governor, GovernorCompatibilityBravo, GovernorVotes, GovernorVotesQuorumFraction, GovernorTimelockControl{
 
     using Timers for Timers.BlockNumber;

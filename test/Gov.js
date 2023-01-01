@@ -37,23 +37,38 @@ describe('Gov', function () {
 
     const Gov = await ethers.getContractFactory('Gov');
     const Token = await ethers.getContractFactory('Token');
+    const TLC = await ethers.getContractFactory('TLC');
     const token = await Token.deploy(
       'wrapped eth',
       'weth',
       '10000000000000000000000'
     );
+    console.log('***********************1');
+    const minDelay = 1;
+    const proposers = [otherAccount.address];
+    const executors = [otherAccount.address];
+    const tlc = await TLC.deploy(minDelay, proposers, executors);
     const TokenAddress = token.address;
-    const gov = await Gov.deploy(TokenAddress);
+    const TlcAddress = tlc.address;
+    const gov = await Gov.deploy(TokenAddress, TlcAddress);
+
+    console.log('***********************2');
 
     await token.deployed();
     await gov.deployed();
+    await tlc.deployed();
+    console.log('***********************3');
 
     await token.transfer(gov.address, '5000000000000000000000');
     // let bl = await token.balanceOf(gov.address);
     // console.log('blance-------');
     // console.log(bl);
+    console.log('gov.address--------------');
+    console.log(gov.address);
+    console.log('tlc.address--------------');
+    console.log(tlc.address);
 
-    return { token, gov, owner, otherAccount };
+    return { token, gov, owner, otherAccount, tlc };
   }
 
   // async function propose(token, toAddress, gov) {
@@ -86,28 +101,28 @@ describe('Gov', function () {
     }
   }
 
-  // async function DoQueue(token, toAddress, gov) {
-  //   const grantAmount = 10;
-  //   const transferCalldata = token.interface.encodeFunctionData('transfer', [
-  //     toAddress,
-  //     grantAmount,
-  //   ]);
+  async function DoQueue(token, toAddress, gov) {
+    const grantAmount = 10;
+    const transferCalldata = token.interface.encodeFunctionData('transfer', [
+      toAddress,
+      grantAmount,
+    ]);
 
-  //   const descriptionHash = ethers.utils.id('Proposal #1: Give grant to team');
-  //   const targets = [token.address];
-  //   const values = [0];
-  //   try {
-  //     const ret = await gov.queue(
-  //       targets,
-  //       values,
-  //       [transferCalldata],
-  //       descriptionHash
-  //     );
-  //     return ret;
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // }
+    const descriptionHash = ethers.utils.id('Proposal #1: Give grant to team');
+    const targets = [token.address];
+    const values = [0];
+    try {
+      const ret = await gov.queue(
+        targets,
+        values,
+        [transferCalldata],
+        descriptionHash
+      );
+      return ret;
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
   async function propose(token, toAddress, gov) {
     const value_ = 100;
@@ -275,9 +290,10 @@ describe('Gov', function () {
       console.log('castVote ret---------------');
       console.log(ret);
 
-      // ret = await DoQueue(token, owner.address, gov);
-      // console.log('do queue ret---------------');
-      // console.log(ret);
+      ret = await DoQueue(token, owner.address, gov);
+      console.log('do queue ret---------------');
+      console.log(ret);
+
       let bl = await token.balanceOf(gov.address);
       console.log('blance before-------');
       console.log(bl);
