@@ -10,6 +10,7 @@ const {
     utils: { Interface, keccak256 },
   },
   network,
+  ethers,
 } = require('hardhat');
 
 // ------------------------------
@@ -45,11 +46,13 @@ describe('Gov', function () {
     );
     console.log('***********************1');
     const minDelay = 1;
-    const proposers = [otherAccount.address];
-    const executors = [otherAccount.address];
+    const proposers = [otherAccount.address, owner.address];
+    const executors = [otherAccount.address, owner.address];
     const tlc = await TLC.deploy(minDelay, proposers, executors);
     const TokenAddress = token.address;
     const TlcAddress = tlc.address;
+    console.log('TlcAddress*****************************************::');
+    console.log(TlcAddress);
     const gov = await Gov.deploy(TokenAddress, TlcAddress);
 
     console.log('***********************2');
@@ -60,9 +63,12 @@ describe('Gov', function () {
     console.log('***********************3');
 
     await token.transfer(gov.address, '5000000000000000000000');
-    // let bl = await token.balanceOf(gov.address);
-    // console.log('blance-------');
-    // console.log(bl);
+    let bl = await token.balanceOf(gov.address);
+    console.log('gov blance-------');
+    console.log(bl);
+    bl = await token.balanceOf(owner.address);
+    console.log('owner blance-------');
+    console.log(bl);
     console.log('gov.address--------------');
     console.log(gov.address);
     console.log('tlc.address--------------');
@@ -100,26 +106,22 @@ describe('Gov', function () {
       console.log(e);
     }
   }
+  async function generateHash(str) {
+    return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(str));
+  }
 
   async function DoQueue(token, toAddress, gov) {
-    const grantAmount = 10;
-    const transferCalldata = token.interface.encodeFunctionData('transfer', [
-      toAddress,
-      grantAmount,
-    ]);
-
-    const descriptionHash = ethers.utils.id('Proposal #1: Give grant to team');
-    const targets = [token.address];
-    const values = [0];
+    const value_ = 100;
     try {
-      const ret = await gov.queue(
-        targets,
-        values,
-        [transferCalldata],
-        descriptionHash
-      );
-      return ret;
+      const des = await generateHash(description);
+      // ************************************
+      // **********ここがうまくいってない********
+      // ************************************
+      let ret = await gov.queue([toAddress], [value_], ['0x'], des);
+      console.log('----queue-----');
+      console.log(ret);
     } catch (e) {
+      console.log('errrrrrrrorrrrr-----------');
       console.log(e);
     }
   }
@@ -127,15 +129,26 @@ describe('Gov', function () {
   async function propose(token, toAddress, gov) {
     const value_ = 100;
     try {
-      await gov.propose([toAddress], [value_], ['0x'], description);
-      const ret = await gov.exhashProposal(
-        [toAddress],
-        [value_],
-        ['0x'],
-        description
-      );
+      let ret = await gov.name();
+      console.log('----name-----');
+      console.log(ret);
+
+      ret = await gov.quorum(1);
+      console.log('----quorum-----');
+      console.log(ret);
+
+      ret = await gov.propose([toAddress], [value_], ['0x'], description);
+      console.log('----propose-----');
+      console.log(ret);
+      const des = await generateHash(description);
+      console.log('des-----------------');
+      console.log(des);
+      ret = await gov.hashProposal([toAddress], [value_], ['0x'], des);
+      console.log('----hash-----');
+      console.log(ret);
       return ret;
     } catch (e) {
+      console.log('errrrrrrrorrrrr-----------');
       console.log(e);
     }
   }
@@ -161,6 +174,15 @@ describe('Gov', function () {
   //     console.log(e);
   //   }
   // }
+
+  async function proposalVotes(proposalId, gov) {
+    try {
+      const ret = await gov.proposalVotes(proposalId);
+      return ret;
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
   async function getVotes(account, blockNumber, gov) {
     try {
@@ -189,6 +211,15 @@ describe('Gov', function () {
     }
   }
 
+  async function hasVoted(proposalId, account, gov) {
+    try {
+      const ret = await gov.hasVoted(proposalId, account);
+      return ret;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   async function getState(proposalId, gov) {
     try {
       const ret = await gov.state(proposalId);
@@ -198,14 +229,15 @@ describe('Gov', function () {
     }
   }
 
-  async function getProposal(proposalId, gov) {
-    try {
-      const ret = await gov.getProposal_(proposalId);
-      return ret;
-    } catch (e) {
-      console.log(e);
-    }
-  }
+  // いらない
+  // async function getProposal(proposalId, gov) {
+  //   try {
+  //     const ret = await gov.getProposal_(proposalId);
+  //     return ret;
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  // }
 
   async function castVote(proposalId, support, gov) {
     try {
@@ -240,17 +272,17 @@ describe('Gov', function () {
 
       ret = await network.provider.send('hardhat_mine', ['0x10']);
 
-      console.log('getProposal ret---------------');
-      ret = await getProposal(id_, gov);
-      console.log(ret);
+      // console.log('getProposal ret---------------');
+      // ret = await getProposal(id_, gov);
+      // console.log(ret);
 
       console.log('get state ret id_ ---------------');
       ret = await getState(id_, gov);
       console.log(ret);
 
-      // blockNumber = await ethers.provider.getBlockNumber();
-      // console.log('blockNumber----');
-      // console.log(blockNumber);
+      blockNumber = await ethers.provider.getBlockNumber();
+      console.log('blockNumber----');
+      console.log(blockNumber);
 
       // ret = await getState(0, gov);
       // console.log('get state ret 0 ---------------');
@@ -263,10 +295,14 @@ describe('Gov', function () {
       // console.log('get snapshot ret 0 ---------------');
       // console.log(ret);
 
-      // ret = await network.provider.send('hardhat_mine', ['0x1']);
-      // blockNumber = await ethers.provider.getBlockNumber();
-      // console.log('blockNumber----');
-      // console.log(blockNumber);
+      ret = await network.provider.send('hardhat_mine', ['0x40']);
+      blockNumber = await ethers.provider.getBlockNumber();
+      console.log('blockNumber----');
+      console.log(blockNumber);
+
+      ret = await hasVoted(id_, owner.address, gov);
+      console.log('************ hasVoted pre************');
+      console.log(ret);
 
       console.log('get deadline ret id_ ---------------');
       ret = await getDeadLine(id_, gov);
@@ -275,9 +311,9 @@ describe('Gov', function () {
       // console.log('get deadline ret 0 ---------------');
       // console.log(ret);
 
-      let blockNumber = await ethers.provider.getBlockNumber();
-      console.log('blockNumber----');
-      console.log(blockNumber);
+      // let blockNumber = await ethers.provider.getBlockNumber();
+      // console.log('blockNumber----');
+      // console.log(blockNumber);
 
       // const support = 0;
 
@@ -285,11 +321,33 @@ describe('Gov', function () {
       // console.log('castVote ret 0 ---------------');
       // console.log(ret);
 
-      const support = 0;
+      console.log('-------proposal votes 1-----');
+      ret = await proposalVotes(0, gov);
+      console.log(ret);
+
+      const support = 1;
       ret = await castVote(id_, support, gov);
       console.log('castVote ret---------------');
       console.log(ret);
+      blockNumber = await ethers.provider.getBlockNumber();
 
+      ret = await network.provider.send('hardhat_mine', ['0x50410']);
+      ret = await getVotes(owner.address, blockNumber + 1, gov);
+      console.log('get Votes ^^^^^^^^^^ owner');
+      console.log(ret);
+      ret = await getVotes(otherAccount.address, blockNumber + 1, gov);
+      console.log('get Votes ^^^^^^^^^^ other');
+      console.log(ret);
+      ret = await hasVoted(id_, owner.address, gov);
+      console.log('************ hasVoted ************');
+      console.log(ret);
+
+      console.log('-------proposal votes 2-----');
+      ret = await proposalVotes(id_, gov);
+      console.log(ret);
+      // #########################
+      // #########イマココ#########
+      // #########################
       ret = await DoQueue(token, owner.address, gov);
       console.log('do queue ret---------------');
       console.log(ret);
