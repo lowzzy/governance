@@ -62,7 +62,7 @@ describe('Gov', function () {
     await tlc.deployed();
     console.log('***********************3');
 
-    await token.transfer(gov.address, '5000000000000000000000');
+    // await token.transfer(gov.address, '10000000000000000000000');
     let bl = await token.balanceOf(gov.address);
     console.log('gov blance-------');
     console.log(bl);
@@ -73,6 +73,13 @@ describe('Gov', function () {
     console.log(gov.address);
     console.log('tlc.address--------------');
     console.log(tlc.address);
+
+    let ret = await delegate(owner.address, token);
+    console.log('################################');
+    console.log('########## delegate ############');
+    console.log('################################');
+
+    console.log(ret);
 
     return { token, gov, owner, otherAccount, tlc };
   }
@@ -133,9 +140,9 @@ describe('Gov', function () {
       console.log('----name-----');
       console.log(ret);
 
-      ret = await gov.quorum(1);
-      console.log('----quorum-----');
-      console.log(ret);
+      // ret = await gov.quorum(1);
+      // console.log('----quorum-----');
+      // console.log(ret);
 
       ret = await gov.propose([toAddress], [value_], ['0x'], description);
       console.log('----propose-----');
@@ -249,17 +256,32 @@ describe('Gov', function () {
     }
   }
 
+  async function delegate(account, token) {
+    try {
+      const ret = await token.delegate(account);
+      console.log(ret);
+      return ret;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   describe('Gov', function () {
     it('deploy', async function () {
       const { token, gov, owner, otherAccount } = await loadFixture(
         deployGovFixture
       );
+      console.log('#############################################');
+      console.log('########## (propose)blockNumber ############');
+      console.log('#############################################');
+      let blockNumber = await ethers.provider.getBlockNumber();
+      console.log(blockNumber);
       let ret_ = await propose(token, owner.address, gov);
       console.log('propose ret---------------');
       console.log(ret_);
-      let ret = await propose(token, otherAccount.address, gov);
-      console.log('propose ret---------------');
-      console.log(ret);
+      // let ret = await propose(token, otherAccount.address, gov);
+      // console.log('propose ret---------------');
+      // console.log(ret);
 
       console.log('########## Mining ##########');
 
@@ -275,8 +297,9 @@ describe('Gov', function () {
       // console.log('getProposal ret---------------');
       // ret = await getProposal(id_, gov);
       // console.log(ret);
-
-      console.log('get state ret id_ ---------------');
+      console.log('#############################');
+      console.log('########## state ############');
+      console.log('#############################');
       ret = await getState(id_, gov);
       console.log(ret);
 
@@ -288,9 +311,6 @@ describe('Gov', function () {
       // console.log('get state ret 0 ---------------');
       // console.log(ret);
 
-      console.log('get snapshot ret---------------');
-      ret = await getSnapshot(id_, gov);
-      console.log(ret);
       // ret = await getSnapshot(0, gov);
       // console.log('get snapshot ret 0 ---------------');
       // console.log(ret);
@@ -304,9 +324,6 @@ describe('Gov', function () {
       console.log('************ hasVoted pre************');
       console.log(ret);
 
-      console.log('get deadline ret id_ ---------------');
-      ret = await getDeadLine(id_, gov);
-      console.log(ret);
       // ret = await getDeadLine(0, gov);
       // console.log('get deadline ret 0 ---------------');
       // console.log(ret);
@@ -326,11 +343,19 @@ describe('Gov', function () {
       console.log(ret);
 
       const support = 1;
+      console.log('#############################################');
+      console.log('########## (castVote)blockNumber ############');
+      console.log('#############################################');
+      blockNumber = await ethers.provider.getBlockNumber();
+      console.log(blockNumber);
       ret = await castVote(id_, support, gov);
       console.log('castVote ret---------------');
       console.log(ret);
-      blockNumber = await ethers.provider.getBlockNumber();
-
+      console.log('#############################');
+      console.log('########## state ############');
+      console.log('#############################');
+      ret = await getState(id_, gov);
+      console.log(ret);
       ret = await network.provider.send('hardhat_mine', ['0x50410']);
       ret = await getVotes(owner.address, blockNumber + 1, gov);
       console.log('get Votes ^^^^^^^^^^ owner');
@@ -342,6 +367,24 @@ describe('Gov', function () {
       console.log('************ hasVoted ************');
       console.log(ret);
 
+      console.log('###################################');
+      console.log('########## blockNumber ############');
+      console.log('###################################');
+      blockNumber = await ethers.provider.getBlockNumber();
+      console.log(blockNumber);
+      console.log('get snapshot ret---------------');
+      ret = await getSnapshot(id_, gov);
+      console.log(ret);
+      console.log('get deadline ret id_ ---------------');
+      ret = await getDeadLine(id_, gov);
+      console.log(ret);
+
+      console.log('#############################');
+      console.log('########## state ############');
+      console.log('#############################');
+      ret = await getState(id_, gov);
+
+      console.log(ret);
       console.log('-------proposal votes 2-----');
       ret = await proposalVotes(id_, gov);
       console.log(ret);
