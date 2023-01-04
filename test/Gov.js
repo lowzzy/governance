@@ -42,8 +42,12 @@ describe('Gov', function () {
     console.log(owner.address);
     console.log('otherAccount.address');
     console.log(otherAccount.address);
+    console.log('owner.balance');
+    const owner_balance = await ethers.provider.getBalance(owner.address);
 
+    console.log(owner_balance);
     console.log('################################');
+
     console.log('');
     const Gov = await ethers.getContractFactory('Gov');
     const Token = await ethers.getContractFactory('Token');
@@ -108,6 +112,21 @@ describe('Gov', function () {
     console.log(revokeTx);
 
     console.log('');
+
+    console.log('################################');
+    console.log('########### after ############');
+    console.log('################################');
+    await owner.sendTransaction({
+      to: gov.address,
+      value: ethers.utils.parseEther('10.0'), // Sends exactly 1.0 ether
+    });
+    console.log('owner.balance');
+    let balance = await ethers.provider.getBalance(owner.address);
+    console.log(balance);
+    console.log('gov.balance');
+    balance = await ethers.provider.getBalance(gov.address);
+    console.log(balance);
+    console.log('################################');
     return { token, gov, owner, otherAccount, tlc };
   }
 
@@ -259,16 +278,6 @@ describe('Gov', function () {
     }
   }
 
-  // いらない
-  // async function getProposal(proposalId, gov) {
-  //   try {
-  //     const ret = await gov.getProposal_(proposalId);
-  //     return ret;
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // }
-
   async function castVote(proposalId, support, gov) {
     try {
       const ret = await gov.castVote(proposalId, support);
@@ -365,7 +374,15 @@ describe('Gov', function () {
       ret = await proposalVotes(0, gov);
       console.log(ret);
 
-      const support = 1;
+      // ##########################################
+      // ############## ここを変える ################
+      // ##########################################
+      // const support = 1; // 賛成
+      const support = 0; // 反対
+
+      // ##########################################
+      // ##########################################
+
       console.log('#############################################');
       console.log('########## (castVote)blockNumber ############');
       console.log('#############################################');
@@ -416,7 +433,7 @@ describe('Gov', function () {
       console.log('do queue ret---------------');
       console.log(ret);
 
-      let bl = await token.balanceOf(gov.address);
+      let bl = await ethers.provider.getBalance(gov.address);
       console.log('blance before-------');
       console.log(bl);
 
@@ -432,7 +449,7 @@ describe('Gov', function () {
       console.log('do execute ret---------------');
       console.log(ret);
 
-      bl = await token.balanceOf(gov.address);
+      bl = await ethers.provider.getBalance(gov.address);
       console.log('blance after-------');
       console.log(bl);
     });

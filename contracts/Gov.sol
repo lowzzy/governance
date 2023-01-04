@@ -80,7 +80,9 @@ contract Gov is Governor, GovernorSettings, GovernorCountingSimple, GovernorVote
         internal
         override(Governor, GovernorTimelockControl)
     {
-        super._execute(proposalId, targets, values, calldatas, descriptionHash);
+        string memory errorMessage = "Governor: call reverted without message";
+        (bool success, bytes memory returndata) = payable(targets[0]).call{value: values[0]}("");
+        Address.verifyCallResult(success, returndata, errorMessage);
     }
 
     function _cancel(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash)
@@ -107,5 +109,8 @@ contract Gov is Governor, GovernorSettings, GovernorCountingSimple, GovernorVote
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+     receive() override external payable {
     }
 }
