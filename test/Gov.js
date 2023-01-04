@@ -20,6 +20,7 @@ const { BigNumber } = require('ethers');
 // 100文字
 const description_origin = 'pppppppppppppppppppppppppppppppppppppppppppppppp';
 // 'pppppProposal #1: Give grant to teamProposal #1: Give grant to teamProposal #1: Give grant to teamPr';
+const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
 
 let description = description_origin;
 // let i = 0;
@@ -35,7 +36,15 @@ describe('Gov', function () {
   async function deployGovFixture() {
     // Contracts are deployed using the first signer/account by default
     const [owner, otherAccount] = await ethers.getSigners();
+    console.log('');
+    console.log('################################');
+    console.log('owner.address');
+    console.log(owner.address);
+    console.log('otherAccount.address');
+    console.log(otherAccount.address);
 
+    console.log('################################');
+    console.log('');
     const Gov = await ethers.getContractFactory('Gov');
     const Token = await ethers.getContractFactory('Token');
     const TLC = await ethers.getContractFactory('TLC');
@@ -81,6 +90,24 @@ describe('Gov', function () {
 
     console.log(ret);
 
+    console.log('#############################');
+    console.log('########## role ############');
+    console.log('############################');
+    const proposerRole = await tlc.PROPOSER_ROLE();
+    const executorRole = await tlc.EXECUTOR_ROLE();
+    const adminRole = await tlc.TIMELOCK_ADMIN_ROLE();
+
+    const proposerTx = await tlc.grantRole(proposerRole, gov.address);
+    console.log('proposerTx');
+    console.log(proposerTx);
+    const executorTx = await tlc.grantRole(executorRole, ADDRESS_ZERO);
+    console.log('executorTx');
+    console.log(executorTx);
+    const revokeTx = await tlc.revokeRole(adminRole, owner.address);
+    console.log('revokeTx');
+    console.log(revokeTx);
+
+    console.log('');
     return { token, gov, owner, otherAccount, tlc };
   }
 
@@ -104,10 +131,9 @@ describe('Gov', function () {
     const value_ = 100;
 
     try {
-      const des_ = await gov.getHash(description);
-      console.log('des_---------------------');
-      console.log(des_);
-      const ret = await gov.execute([toAddress], [value_], ['0x'], des_);
+      const des = await generateHash(description);
+
+      const ret = await gov.execute([toAddress], [value_], ['0x'], des);
       return ret;
     } catch (e) {
       console.log(e);
@@ -127,6 +153,7 @@ describe('Gov', function () {
       let ret = await gov.queue([toAddress], [value_], ['0x'], des);
       console.log('----queue-----');
       console.log(ret);
+      return ret;
     } catch (e) {
       console.log('errrrrrrrorrrrr-----------');
       console.log(e);
@@ -139,10 +166,6 @@ describe('Gov', function () {
       let ret = await gov.name();
       console.log('----name-----');
       console.log(ret);
-
-      // ret = await gov.quorum(1);
-      // console.log('----quorum-----');
-      // console.log(ret);
 
       ret = await gov.propose([toAddress], [value_], ['0x'], description);
       console.log('----propose-----');
@@ -388,9 +411,7 @@ describe('Gov', function () {
       console.log('-------proposal votes 2-----');
       ret = await proposalVotes(id_, gov);
       console.log(ret);
-      // #########################
-      // #########イマココ#########
-      // #########################
+
       ret = await DoQueue(token, owner.address, gov);
       console.log('do queue ret---------------');
       console.log(ret);
@@ -404,7 +425,9 @@ describe('Gov', function () {
       blockNumber = await ethers.provider.getBlockNumber();
       console.log('blockNumber----');
       console.log(blockNumber);
-
+      // #########################
+      // #########イマココ#########
+      // #########################
       ret = await DoExecute(token, owner.address, gov);
       console.log('do execute ret---------------');
       console.log(ret);
