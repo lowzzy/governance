@@ -108,6 +108,7 @@ describe('Gov', function () {
     const executorTx = await tlc.grantRole(executorRole, ADDRESS_ZERO);
     console.log('executorTx');
     console.log(executorTx);
+    // ここownerでもotherAccountでも関係ない↓
     const revokeTx = await tlc.revokeRole(adminRole, owner.address);
     console.log('revokeTx');
     console.log(revokeTx);
