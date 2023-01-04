@@ -59,8 +59,10 @@ describe('Gov', function () {
     );
     console.log('***********************1');
     const minDelay = 1;
-    const proposers = [otherAccount.address, owner.address];
-    const executors = [otherAccount.address, owner.address];
+    // const proposers = [otherAccount.address, owner.address];
+    // const executors = [otherAccount.address, owner.address];
+    const proposers = [otherAccount.address];
+    const executors = [otherAccount.address];
     const tlc = await TLC.deploy(minDelay, proposers, executors);
     const TokenAddress = token.address;
     const TlcAddress = tlc.address;
@@ -75,24 +77,23 @@ describe('Gov', function () {
     await tlc.deployed();
     console.log('***********************3');
 
-    // await token.transfer(gov.address, '10000000000000000000000');
-    let bl = await token.balanceOf(gov.address);
-    console.log('gov blance-------');
+    // ##########################################################
+    // ############下記のコメントアウト外すとエラー出る################
+    // ##########################################################
+    //　ガバナンストークンを十分に持っていないことが原因
+    // await token.transfer(otherAccount.address, '10000000000000000000000');
+    let bl = await token.balanceOf(otherAccount.address);
+    console.log('other account blance-------');
     console.log(bl);
     bl = await token.balanceOf(owner.address);
     console.log('owner blance-------');
     console.log(bl);
     console.log('gov.address--------------');
     console.log(gov.address);
+    console.log('otherAccount.address--------------');
+    console.log(otherAccount.address);
     console.log('tlc.address--------------');
     console.log(tlc.address);
-
-    let ret = await delegate(owner.address, token);
-    console.log('################################');
-    console.log('########## delegate ############');
-    console.log('################################');
-
-    console.log(ret);
 
     console.log('#############################');
     console.log('########## role ############');
@@ -127,6 +128,15 @@ describe('Gov', function () {
     balance = await ethers.provider.getBalance(gov.address);
     console.log(balance);
     console.log('################################');
+
+    let ret = await delegate(owner.address, token);
+    // let ret = await delegate(otherAccount.address, token);
+    console.log('################################');
+    console.log('########## delegate ############');
+    console.log('################################');
+
+    console.log(ret);
+
     return { token, gov, owner, otherAccount, tlc };
   }
 
@@ -377,8 +387,8 @@ describe('Gov', function () {
       // ##########################################
       // ############## ここを変える ################
       // ##########################################
-      // const support = 1; // 賛成
-      const support = 0; // 反対
+      const support = 1; // 賛成
+      // const support = 0; // 反対
 
       // ##########################################
       // ##########################################
