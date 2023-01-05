@@ -1,3 +1,7 @@
+// import Web3 from 'web3';
+const Web3 = require('web3');
+const InputDataDecoder = require('ethereum-input-data-decoder');
+
 const {
   time,
   loadFixture,
@@ -17,6 +21,9 @@ const {
 const { solidity } = require('ethereum-waffle');
 const { expect } = require('chai');
 const { BigNumber } = require('ethers');
+
+const { govAbi } = require('./govData.js');
+
 // 100文字
 const description_origin = 'pppppppppppppppppppppppppppppppppppppppppppppppp';
 // 'pppppProposal #1: Give grant to teamProposal #1: Give grant to teamProposal #1: Give grant to teamPr';
@@ -162,7 +169,12 @@ describe('Gov', function () {
 
     try {
       const des = await generateHash(description);
-
+      console.log('###########################');
+      console.log('description');
+      console.log(description);
+      console.log('hashed descriptioin');
+      console.log(des);
+      console.log('###########################');
       const ret = await gov.execute([toAddress], [value_], ['0x'], des);
       return ret;
     } catch (e) {
@@ -197,9 +209,23 @@ describe('Gov', function () {
       console.log('----name-----');
       console.log(ret);
 
-      ret = await gov.propose([toAddress], [value_], ['0x'], description);
+      const propose_ret = await gov.propose(
+        [toAddress],
+        [value_],
+        ['0x'],
+        description
+      );
+      console.log('##################');
       console.log('----propose-----');
-      console.log(ret);
+      console.log('##################');
+      console.log(propose_ret);
+      console.log('#########################');
+      console.log('####### decoded #########');
+      console.log('#########################');
+
+      const decoder = new InputDataDecoder(govAbi);
+      const decoded = decoder.decodeData(propose_ret.data);
+      console.log(decoded);
       const des = await generateHash(description);
       console.log('des-----------------');
       console.log(des);
@@ -322,6 +348,20 @@ describe('Gov', function () {
       let ret_ = await propose(token, owner.address, gov);
       console.log('propose ret---------------');
       console.log(ret_);
+
+      // // const rpc = 'https://goerli.infura.io/v3/2041caa13d124e128e8dbf3ab704f2d4';
+      // // const web3 = new Web3(new Web3.providers.HttpProvider(rpc));
+      // console.log('*************************1');
+      // // let ex_decode =
+      // //   '0xa22cb4650000000000000000000000001e0049783f008a0085193e00003d00cd54003c710000000000000000000000000000000000000000000000000000000000000001';
+      // let ex_decode = ret_.data;
+      // console.log('*************************2');
+      // const decoder = new InputDataDecoder(govAbi);
+      // const decoded = decoder.decodeData(ex_decode);
+      // // let decoded = web3.eth.abi.decodeParameters(['bool', 'address'], ex_decode);
+      // console.log('*************************3');
+
+      // console.log(decoded);
       // let ret = await propose(token, otherAccount.address, gov);
       // console.log('propose ret---------------');
       // console.log(ret);
