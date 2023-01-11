@@ -43,19 +43,6 @@ describe('Gov', function () {
   async function deployGovFixture() {
     // Contracts are deployed using the first signer/account by default
     const [owner, otherAccount] = await ethers.getSigners();
-    console.log('');
-    console.log('################################');
-    console.log('owner.address');
-    console.log(owner.address);
-    console.log('otherAccount.address');
-    console.log(otherAccount.address);
-    console.log('owner.balance');
-    const owner_balance = await ethers.provider.getBalance(owner.address);
-
-    console.log(owner_balance);
-    console.log('################################');
-
-    console.log('');
     const Gov = await ethers.getContractFactory('Gov');
     const Token = await ethers.getContractFactory('Token');
     const TLC = await ethers.getContractFactory('TLC');
@@ -64,117 +51,28 @@ describe('Gov', function () {
       'weth',
       '10000000000000000000000'
     );
-    console.log('***********************1');
+
     const minDelay = 1;
-    // const proposers = [otherAccount.address, owner.address];
-    // const executors = [otherAccount.address, owner.address];
     const proposers = [otherAccount.address];
     const executors = [otherAccount.address];
+
     const tlc = await TLC.deploy(minDelay, proposers, executors);
     const TokenAddress = token.address;
     const TlcAddress = tlc.address;
-    console.log('TlcAddress*****************************************::');
-    console.log(TlcAddress);
+
     const gov = await Gov.deploy(TokenAddress, TlcAddress);
-
-    console.log('***********************2');
-
     await token.deployed();
     await gov.deployed();
     await tlc.deployed();
-    console.log('***********************3');
-
-    // ##########################################################
-    // ############下記のコメントアウト外すとエラー出る################
-    // ##########################################################
-    //　ガバナンストークンを十分に持っていないことが原因
-    // await token.transfer(otherAccount.address, '10000000000000000000000');
-    let bl = await token.balanceOf(otherAccount.address);
-    console.log('other account blance-------');
-    console.log(bl);
-    bl = await token.balanceOf(owner.address);
-    console.log('owner blance-------');
-    console.log(bl);
-    console.log('gov.address--------------');
-    console.log(gov.address);
-    console.log('otherAccount.address--------------');
-    console.log(otherAccount.address);
-    console.log('tlc.address--------------');
-    console.log(tlc.address);
-
-    console.log('#############################');
-    console.log('########## role ############');
-    console.log('############################');
-    const proposerRole = await tlc.PROPOSER_ROLE();
-    const executorRole = await tlc.EXECUTOR_ROLE();
-    const adminRole = await tlc.TIMELOCK_ADMIN_ROLE();
-
-    const proposerTx = await tlc.grantRole(proposerRole, gov.address);
-    console.log('proposerTx');
-    console.log(proposerTx);
-    const executorTx = await tlc.grantRole(executorRole, ADDRESS_ZERO);
-    console.log('executorTx');
-    console.log(executorTx);
-    // ここownerでもotherAccountでも関係ない↓
-    const revokeTx = await tlc.revokeRole(adminRole, owner.address);
-    console.log('revokeTx');
-    console.log(revokeTx);
-
-    console.log('');
-
-    console.log('################################');
-    console.log('########### after ############');
-    console.log('################################');
-    await owner.sendTransaction({
-      to: gov.address,
-      value: ethers.utils.parseEther('10.0'), // Sends exactly 1.0 ether
-    });
-    console.log('owner.balance');
-    let balance = await ethers.provider.getBalance(owner.address);
-    console.log(balance);
-    console.log('gov.balance');
-    balance = await ethers.provider.getBalance(gov.address);
-    console.log(balance);
-    console.log('################################');
-
-    let ret = await delegate(owner.address, token);
-    // let ret = await delegate(otherAccount.address, token);
-    console.log('################################');
-    console.log('########## delegate ############');
-    console.log('################################');
-
-    console.log(ret);
 
     return { token, gov, owner, otherAccount, tlc };
   }
-
-  // async function propose(token, toAddress, gov) {
-  //   const value_ = 100;
-  //   try {
-  //     await gov.propose([toAddress], [value_], ['0x'], description);
-  //     const ret = await gov.exhashProposal(
-  //       [toAddress],
-  //       [value_],
-  //       ['0x'],
-  //       description
-  //     );
-  //     return ret;
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // }
 
   async function DoExecute(token, toAddress, gov) {
     const value_ = 100;
 
     try {
       const des = await generateHash(description);
-      console.log('###########################');
-      console.log('description');
-      console.log(description);
-      console.log('hashed descriptioin');
-      console.log(des);
-      console.log('###########################');
       const ret = await gov.execute([toAddress], [value_], ['0x'], des);
       return ret;
     } catch (e) {
@@ -189,15 +87,9 @@ describe('Gov', function () {
     const value_ = 100;
     try {
       const des = await generateHash(description);
-      // ************************************
-      // **********ここがうまくいってない********
-      // ************************************
       let ret = await gov.queue([toAddress], [value_], ['0x'], des);
-      console.log('----queue-----');
-      console.log(ret);
       return ret;
     } catch (e) {
-      console.log('errrrrrrrorrrrr-----------');
       console.log(e);
     }
   }
@@ -205,61 +97,14 @@ describe('Gov', function () {
   async function propose(token, toAddress, gov) {
     const value_ = 100;
     try {
-      let ret = await gov.name();
-      console.log('----name-----');
-      console.log(ret);
-
-      const propose_ret = await gov.propose(
-        [toAddress],
-        [value_],
-        ['0x'],
-        description
-      );
-      console.log('##################');
-      console.log('----propose-----');
-      console.log('##################');
-      console.log(propose_ret);
-      console.log('#########################');
-      console.log('####### decoded #########');
-      console.log('#########################');
-
-      const decoder = new InputDataDecoder(govAbi);
-      const decoded = decoder.decodeData(propose_ret.data);
-      console.log(decoded);
+      await gov.propose([toAddress], [value_], ['0x'], description);
       const des = await generateHash(description);
-      console.log('des-----------------');
-      console.log(des);
       ret = await gov.hashProposal([toAddress], [value_], ['0x'], des);
-      console.log('----hash-----');
-      console.log(ret);
       return ret;
     } catch (e) {
-      console.log('errrrrrrrorrrrr-----------');
       console.log(e);
     }
   }
-
-  // async function hashProposal(token, toAddress, gov) {
-  //   const grantAmount = 10;
-  //   const transferCalldata = token.interface.encodeFunctionData('transfer', [
-  //     toAddress,
-  //     grantAmount,
-  //   ]);
-
-  //   const targets = [token.address];
-  //   const values = [0];
-  //   try {
-  //     const ret = await gov.exhashProposal(
-  //       targets,
-  //       values,
-  //       [transferCalldata],
-  //       description
-  //     );
-  //     return ret;
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // }
 
   async function proposalVotes(proposalId, gov) {
     try {
@@ -340,169 +185,7 @@ describe('Gov', function () {
       const { token, gov, owner, otherAccount } = await loadFixture(
         deployGovFixture
       );
-      console.log('#############################################');
-      console.log('########## (propose)blockNumber ############');
-      console.log('#############################################');
-      let blockNumber = await ethers.provider.getBlockNumber();
-      console.log(blockNumber);
-      let ret_ = await propose(token, owner.address, gov);
-      console.log('propose ret---------------');
-      console.log(ret_);
-
-      // // const rpc = 'https://goerli.infura.io/v3/2041caa13d124e128e8dbf3ab704f2d4';
-      // // const web3 = new Web3(new Web3.providers.HttpProvider(rpc));
-      // console.log('*************************1');
-      // // let ex_decode =
-      // //   '0xa22cb4650000000000000000000000001e0049783f008a0085193e00003d00cd54003c710000000000000000000000000000000000000000000000000000000000000001';
-      // let ex_decode = ret_.data;
-      // console.log('*************************2');
-      // const decoder = new InputDataDecoder(govAbi);
-      // const decoded = decoder.decodeData(ex_decode);
-      // // let decoded = web3.eth.abi.decodeParameters(['bool', 'address'], ex_decode);
-      // console.log('*************************3');
-
-      // console.log(decoded);
-      // let ret = await propose(token, otherAccount.address, gov);
-      // console.log('propose ret---------------');
-      // console.log(ret);
-
-      console.log('########## Mining ##########');
-
-      // const proposalId = await hashProposal(token, owner.address, gov);
-      const proposalId = ret_;
-
-      const id_ = proposalId.toString();
-      console.log('proposalId ret---------------');
-      console.log(id_);
-
-      ret = await network.provider.send('hardhat_mine', ['0x10']);
-
-      // console.log('getProposal ret---------------');
-      // ret = await getProposal(id_, gov);
-      // console.log(ret);
-      console.log('#############################');
-      console.log('########## state ############');
-      console.log('#############################');
-      ret = await getState(id_, gov);
-      console.log(ret);
-
-      blockNumber = await ethers.provider.getBlockNumber();
-      console.log('blockNumber----');
-      console.log(blockNumber);
-
-      // ret = await getState(0, gov);
-      // console.log('get state ret 0 ---------------');
-      // console.log(ret);
-
-      // ret = await getSnapshot(0, gov);
-      // console.log('get snapshot ret 0 ---------------');
-      // console.log(ret);
-
-      ret = await network.provider.send('hardhat_mine', ['0x40']);
-      blockNumber = await ethers.provider.getBlockNumber();
-      console.log('blockNumber----');
-      console.log(blockNumber);
-
-      ret = await hasVoted(id_, owner.address, gov);
-      console.log('************ hasVoted pre************');
-      console.log(ret);
-
-      // ret = await getDeadLine(0, gov);
-      // console.log('get deadline ret 0 ---------------');
-      // console.log(ret);
-
-      // let blockNumber = await ethers.provider.getBlockNumber();
-      // console.log('blockNumber----');
-      // console.log(blockNumber);
-
-      // const support = 0;
-
-      // ret = await castVote(0, support, gov);
-      // console.log('castVote ret 0 ---------------');
-      // console.log(ret);
-
-      console.log('-------proposal votes 1-----');
-      ret = await proposalVotes(0, gov);
-      console.log(ret);
-
-      // ##########################################
-      // ############## ここを変える ################
-      // ##########################################
-      const support = 1; // 賛成
-      // const support = 0; // 反対
-
-      // ##########################################
-      // ##########################################
-
-      console.log('#############################################');
-      console.log('########## (castVote)blockNumber ############');
-      console.log('#############################################');
-      blockNumber = await ethers.provider.getBlockNumber();
-      console.log(blockNumber);
-      ret = await castVote(id_, support, gov);
-      console.log('castVote ret---------------');
-      console.log(ret);
-      console.log('#############################');
-      console.log('########## state ############');
-      console.log('#############################');
-      ret = await getState(id_, gov);
-      console.log(ret);
-      ret = await network.provider.send('hardhat_mine', ['0x50410']);
-      ret = await getVotes(owner.address, blockNumber + 1, gov);
-      console.log('get Votes ^^^^^^^^^^ owner');
-      console.log(ret);
-      ret = await getVotes(otherAccount.address, blockNumber + 1, gov);
-      console.log('get Votes ^^^^^^^^^^ other');
-      console.log(ret);
-      ret = await hasVoted(id_, owner.address, gov);
-      console.log('************ hasVoted ************');
-      console.log(ret);
-
-      console.log('###################################');
-      console.log('########## blockNumber ############');
-      console.log('###################################');
-      blockNumber = await ethers.provider.getBlockNumber();
-      console.log(blockNumber);
-      console.log('get snapshot ret---------------');
-      ret = await getSnapshot(id_, gov);
-      console.log(ret);
-      console.log('get deadline ret id_ ---------------');
-      ret = await getDeadLine(id_, gov);
-      console.log(ret);
-
-      console.log('#############################');
-      console.log('########## state ############');
-      console.log('#############################');
-      ret = await getState(id_, gov);
-
-      console.log(ret);
-      console.log('-------proposal votes 2-----');
-      ret = await proposalVotes(id_, gov);
-      console.log(ret);
-
-      ret = await DoQueue(token, owner.address, gov);
-      console.log('do queue ret---------------');
-      console.log(ret);
-
-      let bl = await ethers.provider.getBalance(gov.address);
-      console.log('blance before-------');
-      console.log(bl);
-
-      ret = await network.provider.send('hardhat_mine', ['0x40']);
-
-      blockNumber = await ethers.provider.getBlockNumber();
-      console.log('blockNumber----');
-      console.log(blockNumber);
-      // #########################
-      // #########イマココ#########
-      // #########################
-      ret = await DoExecute(token, owner.address, gov);
-      console.log('do execute ret---------------');
-      console.log(ret);
-
-      bl = await ethers.provider.getBalance(gov.address);
-      console.log('blance after-------');
-      console.log(bl);
+      await propose(token, owner.address, gov);
     });
   });
 });
